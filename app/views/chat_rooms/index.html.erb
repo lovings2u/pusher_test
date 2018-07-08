@@ -1,0 +1,67 @@
+<% if user_signed_in? %>
+  <p><%= current_user.email %></p>
+  <%= link_to 'logout', destroy_user_session_path, method: :delete %>
+<% else %>
+  <%= link_to 'login', new_user_session_path %>
+<% end %>
+
+<h1>Chat Rooms</h1>
+
+<table>
+  <thead>
+    <tr>
+      <th>Title</th>
+      <th colspan="3"></th>
+    </tr>
+  </thead>
+
+  <tbody id="chat-rooms">
+    <% @chat_rooms.each do |chat_room| %>
+      <tr class="room<%= chat_room.id %>">
+        <td class="room_title<%= chat_room.id %>"><%= chat_room.title %></td>
+        <td><%= link_to 'Show', chat_room %></td>
+        <td><%= link_to 'Edit', edit_chat_room_path(chat_room) %></td>
+        <td><%= link_to 'Destroy', chat_room, method: :delete, data: { confirm: 'Are you sure?' } %></td>
+      </tr>
+    <% end %>
+  </tbody>
+</table>
+
+<br>
+
+<%= link_to 'New Chat Room', new_chat_room_path %>
+
+<script type="text/javascript">
+$(document).on('ready', function() {
+  function new_chat_room(data) {
+    $('#chat-rooms').append(`
+      <tr>
+        <td>${data.title}</td>
+        <td><a href="/chat_rooms/${data.id}">Show</a></td>
+        <td><a href="/chat_rooms/${data.id}/edit">Edit</a></td>
+        <td><a data-confirm="Are you sure?" rel="nofollow" data-method="delete" href="/chat_rooms/${data.id}">Destroy</a></td>
+      </tr>`);
+  }
+  function destroy_chat_room(data) {
+    $(`.room${data.id}`).remove();
+  }
+  function update_chat_room(data) {
+    $(`.room_title${data.id}`).text(data.title);
+  }
+  var pusher = new Pusher('<%= ENV["pusher_key"] %>', {
+    cluster: '<%= ENV["pusher_cluster"] %>',
+    encrypted: true
+  });
+  var channel = pusher.subscribe('chat_room');
+  channel.bind('create', function(data) {
+    new_chat_room(data);
+  });
+  channel.bind('destroy', function(data) {
+    destroy_chat_room(data);
+  });
+  channel.bind('update', function(data) {
+    update_chat_room(data);
+  })
+
+})
+</script>

@@ -1,0 +1,38 @@
+<ul id="users-list">
+<% @chat_room.users.each do |user| %>
+  <li><%= user.email %></li>
+<% end %>
+</ul>
+<hr>
+<ul id="chats-list">
+  <% @chat_room.chats.each do |chat| %>
+    <%= chat.message %>
+  <% end %>
+</ul>
+<%= form_tag('/chats') do %>
+  <%= text_field_tag :message %>
+<% end %>
+
+<hr>
+<% unless @chat_room.users.include?(current_user) %>
+<%= link_to 'Join', join_to_chat_path(@chat_room), remote: true %> |
+<% end %>
+<%= link_to 'Edit', edit_chat_room_path(@chat_room) %> |
+<%= link_to 'Back', chat_rooms_path %>
+
+<script type="text/javascript">
+$(document).on('ready', function() {
+  function user_join(data) {
+    $('#users-list').append(`<li>${data}</li>`)
+  }
+  var pusher = new Pusher('<%= ENV["pusher_key"] %>', {
+    cluster: '<%= ENV["pusher_cluster"] %>',
+    encrypted: true
+  });
+  var channel = pusher.subscribe('join');
+  channel.bind('create', function(data) {
+    user_join(data);
+    console.log(data);
+  });
+})
+</script>
